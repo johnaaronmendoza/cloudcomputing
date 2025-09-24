@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skills-platform-config
+  namespace: skills-platform
+data:
+  # Database configuration
+  DATABASE_URL: "postgresql://postgres:password@postgres-service:5432/skills_platform"
+  REDIS_URL: "redis://redis-service:6379"
+  ELASTICSEARCH_URL: "http://elasticsearch-service:9200"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq-service:5672"
+  
+  # Service URLs
+  AUTH_SERVICE_URL: "http://auth-service:3001"
+  TASK_SERVICE_URL: "http://task-service:3002"
+  SEARCH_SERVICE_URL: "http://search-service:3003"
+  CONTENT_SERVICE_URL: "http://content-service:3004"
+  MONITORING_SERVICE_URL: "http://monitoring-service:3005"
+  
+  # JWT Configuration
+  JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+  
+  # AWS S3 Configuration
+  S3_BUCKET: "skills-platform-content"
+  S3_REGION: "us-east-1"
+  
+  # Environment
+  NODE_ENV: "production"
+  
+  # Elasticsearch Configuration
+  ES_USERNAME: ""
+  ES_PASSWORD: ""

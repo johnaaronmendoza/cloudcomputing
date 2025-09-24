@@ -1,0 +1,36 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies for image/video processing
+# RUN apk add --no-cache ffmpeg imagemagick python3 make gcc g++
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --only=production
+
+# Copy source code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Change ownership
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Expose port
+EXPOSE 3004
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node healthcheck.js
+
+# Start the application
+CMD ["npm", "start"]

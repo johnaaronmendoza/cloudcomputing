@@ -1,0 +1,220 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - TASK_SERVICE_URL=http://task-service:3002
+      - SEARCH_SERVICE_URL=http://search-service:3003
+      - CONTENT_SERVICE_URL=http://content-service:3004
+    depends_on:
+      - auth-service
+      - task-service
+      - search-service
+      - content-service
+    networks:
+      - skills-platform
+
+  # Authentication Service
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - JWT_SECRET=your-super-secret-jwt-key
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/skills_platform
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - skills-platform
+
+  # Task Management Service
+  task-service:
+    build: ./services/task-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/skills_platform
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - skills-platform
+
+  # Search & Recommendation Service
+  search-service:
+    build: ./services/search-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/skills_platform
+      - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+    networks:
+      - skills-platform
+
+  # Content Library Service
+  content-service:
+    build: ./services/content-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/skills_platform
+      - REDIS_URL=redis://redis:6379
+      - S3_BUCKET=skills-platform-content
+      - S3_REGION=us-east-1
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - skills-platform
+
+  # Monitoring Service
+  monitoring-service:
+    build: ./services/monitoring-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+    depends_on:
+      - prometheus
+      - grafana
+    networks:
+      - skills-platform
+
+  # Matching Engine Service
+  matching-engine:
+    build: ./services/matching-engine
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/skills_platform
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - TASK_SERVICE_URL=http://task-service:3002
+      - SEARCH_SERVICE_URL=http://search-service:3003
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - skills-platform
+
+  # Queue Service
+  queue-service:
+    build: ./services/queue-service
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/skills_platform
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - TASK_SERVICE_URL=http://task-service:3002
+      - SEARCH_SERVICE_URL=http://search-service:3003
+      - CONTENT_SERVICE_URL=http://content-service:3004
+      - MONITORING_SERVICE_URL=http://monitoring-service:3005
+      - MATCHING_SERVICE_URL=http://matching-engine:3006
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - skills-platform
+
+  # Databases
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=skills_platform
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - skills-platform
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - skills-platform
+
+  # Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - skills-platform
+
+  # Search Engine
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - skills-platform
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - skills-platform
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3008:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - skills-platform
+
+volumes:
+  postgres_data:
+  grafana_data:
+
+networks:
+  skills-platform:
+    driver: bridge

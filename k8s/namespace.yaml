@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: skills-platform
+  labels:
+    name: skills-platform
+    app.kubernetes.io/name: skills-platform
+    app.kubernetes.io/version: "1.0.0"
